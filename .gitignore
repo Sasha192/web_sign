@@ -1,0 +1,10 @@
+.idea/*
+target/*
+*.iml
+*.log
+.settings/*
+.classpath
+.project
+/src/main/webapp/archive/
+*.log*
+*app.properties*

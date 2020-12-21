@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Created-By: IntelliJ IDEA
+Built-By: kolmogorov
+Build-Jdk: 11.0.2
+Implementation-Version: 1.0
+Implementation-Vendor-Id: labacr
+Main-Class: ${start-class}
+
