@@ -14,12 +14,11 @@ ISSUES :
 
 HOW TO USE ? 
 
-TOOLS : 
+1) TOOLS : 
+      JDK 11 -> JAVA_HOME
+      MAVEN 
 
-JDK 11 -> JAVA_HOME
-MAVEN
+2) RUN "mvn spring-boot:run"
 
-RUN "mvn spring-boot:run"
-
-LOOK "localhost:8080"
+3) LOOK "localhost:8080"
 
