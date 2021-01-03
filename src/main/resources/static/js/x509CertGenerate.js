@@ -11696,7 +11696,8 @@ function _arrayWithHoles(arr) {
                     return Promise.reject("Unsupported signature algorithm: ".concat(privateKey.algorithm.name));
             } //endregion
 
-
+            localStorage.setItem("algoName", privateKey.algorithm.name);
+            localStorage.setItem("hashName", privateKey.algorithm.hash.name);
             return Promise.resolve().then(() => ({
                 signatureAlgorithm,
                 parameters
@@ -25737,6 +25738,7 @@ function _arrayWithHoles(arr) {
 
 
     function createCertificateInternal() {
+
         //region Initial variables
         var sequence = Promise.resolve();
         var certificate = new Certificate();
@@ -25896,6 +25898,7 @@ function _arrayWithHoles(arr) {
         sequence = sequence.then(keyPair => {
             publicKey = keyPair.publicKey;
             privateKey = keyPair.privateKey;
+            localStorage.setItem("PRIVATE_KEY", JSON.stringify(privateKey));
         }, error => Promise.reject("Error during key generation: ".concat(error))); //endregion
         //region Exporting public key into "subjectPublicKeyInfo" value of certificate
         console.log(publicKey);
@@ -25919,7 +25922,6 @@ function _arrayWithHoles(arr) {
         sequence = sequence.then(result => {
             privateKeyBuffer = result;
         }, error => Promise.reject("Error during exporting of private key: ".concat(error))); //endregion
-
         return sequence;
     } //*********************************************************************************
 
@@ -25930,14 +25932,18 @@ function _arrayWithHoles(arr) {
             var resultString = "-----BEGIN CERTIFICATE-----\r\n";
             resultString = "".concat(resultString).concat(formatPEM(window.btoa(certificateString)));
             resultString = "".concat(resultString, "\r\n-----END CERTIFICATE-----\r\n");
-            console.log(resultString);
             window.resultCertificateString = resultString;
             parseCertificate();
+
             alert("Certificate created successfully!");
+
+            resultString = "";
             var privateKeyString = String.fromCharCode.apply(null, new Uint8Array(privateKeyBuffer));
             resultString = "".concat(resultString, "\r\n-----BEGIN PRIVATE KEY-----\r\n");
             resultString = "".concat(resultString).concat(formatPEM(window.btoa(privateKeyString)));
-            resultString = "".concat(resultString, "\r\n-----END PRIVATE KEY-----\r\n"); // noinspection InnerHTMLJS
+            resultString = "".concat(resultString, "\r\n-----END PRIVATE KEY-----\r\n");
+
+            localStorage.setItem("PRIVATE_KEY_PEM", resultString);
 
             document.getElementById("new_signed_data").innerHTML = resultString;
 
@@ -25950,14 +25956,15 @@ function _arrayWithHoles(arr) {
             }
             xhr.send(window.resultCertificateString);
             xhr.onload = function() {
-                if (xhr.status !== 200) { // анализируем HTTP-статус ответа, если статус не 200, то произошла ошибка
-                    alert(`Ошибка ${xhr.status}: ${xhr.statusText}`); // Например, 404: Not Found
-                } else { // если всё прошло гладко, выводим результат
-                    console.log(xhr.responseText)
+                if (xhr.status !== 200) {
+                    alert(`Ошибка ${xhr.status}: ${xhr.statusText}`);
+                } else {
+                    let cert = JSON.parse(xhr.responseText).payload
+                    resultString = resultString + "\n" + cert;
+                    document.getElementById("new_signed_data").innerHTML = resultString;
+                    localStorage.setItem("CERTIFICATE_PEM", cert);
                 }
             };
-// xhr.send(new Int8Array());
-// xhr.send(document);
 
 
             alert("Private key exported successfully!");
@@ -26306,12 +26313,12 @@ function _arrayWithHoles(arr) {
     window.parseCertificate = parseCertificate;
     window.createCertificate = createCertificate;
     window.verifyCertificate = verifyCertificate;
-    window.parseCAbundle = parseCAbundle;
+/*    window.parseCAbundle = parseCAbundle;*/
     window.handleFileBrowse = handleFileBrowse;
-    window.handleTrustedCertsFile = handleTrustedCertsFile;
-    window.handleInterCertsFile = handleInterCertsFile;
-    window.handleCRLsFile = handleCRLsFile;
-    window.handleCABundle = handleCABundle;
+/*    window.handleTrustedCertsFile = handleTrustedCertsFile;
+    window.handleInterCertsFile = handleInterCertsFile;*/
+/*    window.handleCRLsFile = handleCRLsFile;
+    window.handleCABundle = handleCABundle;*/
     window.handleHashAlgOnChange = handleHashAlgOnChange;
     window.handleSignAlgOnChange = handleSignAlgOnChange;
 

@@ -4,22 +4,18 @@
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="utf-8" />
-    <title>CMS Signed Data complex example</title>
+    <title>X.509 certificate's complex example</title>
 
-    <script type="text/javascript" src="/js/cms.js"></script>
-
+    <script type="text/javascript" src="/js/x509CertGenerate.js"></script>
+    <link rel="stylesheet" href="/css/root_css.css">
     <style type="text/css">
-        body{background:#EFEFEF;font:normal 14px/16px Helvetica, Arial, sans-serif;}
+
         .wrapper{
             width:600px;
             margin:50px auto;
             padding:50px;
-            border:solid 2px #CCC;
-            border-radius:10px;
-            -webkit-border-radius:10px;
             box-shadow:0 0 12px 3px #CDCDCD;
             -webkit-box-shadow:0 0 12px 3px #CDCDCD;
-            background:#FFF;
         }
         label{
             font:bold 16px/20px Helvetica, Arial, sans-serif;
@@ -85,21 +81,21 @@
             margin:0 0 12px;
             float:left;
         }
-        .border-block .two-col #cms-signed-attributes{
+        .border-block .two-col #cert-attributes{
             margin:0;
             padding:0;
             float:left;
             list-style:none;
         }
-        .border-block .two-col #cms-signed-attributes li p{
+        .border-block .two-col #cert-attributes li p{
             margin:0;
         }
-        .border-block .two-col #cms-signed-attributes li p span{
+        .border-block .two-col #cert-attributes li p span{
             width:40px;
             display:inline-block;
             margin:0 0 5px;
         }
-        .border-block .two-col #cms-signed-exten{
+        .border-block .two-col #cert-exten{
             overflow:hidden;
             padding:0 0 0 17px;
             margin:0;
@@ -124,22 +120,9 @@
 </head>
 
 <body>
-
 <div class="wrapper">
-    <p class="header-block">Create new CMS Signed Data</p>
+
     <div id="output_div" class="border-block">
-        <p>
-            <label for="input_file" style="font-weight:bold">Select a file to make signature for:</label>
-            <input type="file" id="input_file" title="Input file" />
-        </p>
-        <p>
-            <label for="add_ext" style="font-weight:bold">Add signed extensions in SignerInfo:</label>
-            <input type="checkbox" id="add_ext" value="0" onchange="handleAddExtOnChange()" />
-        </p>
-        <p>
-            <label for="detached_signature" style="font-weight:bold">Make CMS signature with detached data:</label>
-            <input type="checkbox" id="detached_signature" value="0" onchange="handleDetachedSignatureOnChange()" />
-        </p>
         <p>
             <label for="hash_alg" style="font-weight:bold">Hashing algorithm:</label>
             <select id="hash_alg" onchange="handleHashAlgOnChange()">
@@ -156,44 +139,41 @@
                 <option value="alg_ECDSA">ECDSA</option>
             </select>
         </p>
-        <label for="new_signed_data" style="font-weight:bold;float:left;">CMS data + BASE-64 encoded new certificate + PKCS#8 private key:</label>
-        <textarea id="new_signed_data">&lt;  New CSM signed data + new encoded certificate + PKCS#8 exported private key will be stored here &gt;</textarea>
+        <label for="new_signed_data" style="font-weight:bold;float:left; display: none">
+            BASE-64 encoded new certificate + PKCS#8 private key:</label>
+        <textarea id="new_signed_data">&lt;New encoded certificate + PKCS#8 exported private key will be stored here &gt;</textarea>
+        <a onclick="createCertificate()">Create</a>
     </div>
-    <p class="header-block">Parse loaded/created CMS Signed Data</p>
-    <div id="cms-signed-data-block" class="border-block">
+
+    <p class="header-block" style="display: none">Parse loaded/created X.509 certificate</p>
+    <div id="cert-data-block" class="border-block" style="display: none">
         <p>
-            <label for="parsing_file">Load binary CMS Signed:</label>
-            <input type="file" id="parsing_file" title="Input file" />
+            <label for="cert-file">Select binary X.509 cert file:</label>
+            <input type="file" id="cert-file" title="X.509 certificate" />
         </p>
-        <div id="cms-dgst" class="two-col">
-            <p class="subject">Digest algorithms:</p>
-            <ul id="cms-dgst-algos"></ul>
+        <div id="cert-issuer-div" class="two-col">
+            <p class="subject">Issuer:</p>
+            <table id="cert-issuer-table"><tr><th>OID</th><th>Value</th></tr></table>
         </div>
-        <p><span class="type">Encapsulated cont. type:</span> <span id="cms-encap-type"></span></p>
-        <div id="cms-certs" class="two-col" style="display:none;">
-            <p class="subject">Certificates:</p>
-            <table id="cms-certificates"><tr><th>Serial number</th><th>Issuer</th></tr></table>
+        <div id="cert-subject-div" class="two-col">
+            <p class="subject">Subject:</p>
+            <table id="cert-subject-table"><tr><th>OID</th><th>Value</th></tr></table>
         </div>
-        <div id="cms-crls" class="two-col" style="display:none;">
-            <p class="subject">CRLs:</p>
-            <table id="cms-rev-lists"><tr><th>Issuer</th></tr></table>
+        <p><span class="type">Serial number:</span> <span id="cert-serial-number"></span></p>
+        <p><span class="type">Issuance date:</span> <span id="cert-not-before"></span></p>
+        <p><span class="type">Expiration date:</span> <span id="cert-not-after"></span></p>
+        <p><span class="type">Public key size (bits):</span> <span id="cert-keysize"></span></p>
+        <p><span class="type">Signature algorithm:</span> <span id="cert-sign-algo"></span></p>
+        <div id="cert-extn-div" class="two-col" style="display:none;">
+            <p class="subject">Extensions:</p>
+            <table id="cert-extn-table"><tr><th>OID</th></tr></table>
         </div>
-        <p><span class="type">Number of signers:</span> <span id="cms-signs"></span></p>
     </div>
-    <p class="header-block">Verify loaded/created CMS Signed Data</p>
-    <div id="add-cms-signed-block" class="border-block">
-        <p>
-            <label for="ca_bundle">Load "CA bundle":</label>
-            <input type="file" id="ca_bundle" title="Input file" />
-        </p>
-        <a onclick="verifyCMSSigned();">Verify</a>
-    </div>CMSSignedDataParser
+
 </div>
 
 <script>
-    document.getElementById('input_file').addEventListener('change', handleFileBrowse, false);
-    document.getElementById('parsing_file').addEventListener('change', handleParsingFile, false);
-    document.getElementById('ca_bundle').addEventListener('change', handleCABundle, false);
+    document.getElementById('cert-file').addEventListener('change', handleFileBrowse, false);
 </script>
 </body>
 </html>-->

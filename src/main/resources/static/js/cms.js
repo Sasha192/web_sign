@@ -29709,6 +29709,8 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
     //*********************************************************************************
     //endregion
     //*********************************************************************************
+
+
     //region Parse existing CMS_Signed
     //*********************************************************************************
     function parseCMSSigned() {
@@ -29854,140 +29856,65 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
     //region Create CMS_Signed
     //*********************************************************************************
     function createCMSSignedInternal() {
-        //region Initial variables
-        var sequence = Promise.resolve();
 
-        var certSimpl = new Certificate();
-        var cmsSignedSimpl = void 0;
-
-        var publicKey = void 0;
-        var privateKey = void 0;
-        //endregion
-
-        //region Get a "crypto" extension
-        var crypto = getCrypto();
-        if (typeof crypto === "undefined") return Promise.reject("No WebCrypto extension found");
-        //endregion
-
-        //region Put a static values
-        certSimpl.version = 2;
-        certSimpl.serialNumber = new Integer({ value: 1 });
-        certSimpl.issuer.typesAndValues.push(new AttributeTypeAndValue({
-            type: "2.5.4.6", // Country name
-            value: new PrintableString({ value: "RU" })
-        }));
-        certSimpl.issuer.typesAndValues.push(new AttributeTypeAndValue({
-            type: "2.5.4.3", // Common name
-            value: new BmpString({ value: "Test" })
-        }));
-        certSimpl.subject.typesAndValues.push(new AttributeTypeAndValue({
-            type: "2.5.4.6", // Country name
-            value: new PrintableString({ value: "RU" })
-        }));
-        certSimpl.subject.typesAndValues.push(new AttributeTypeAndValue({
-            type: "2.5.4.3", // Common name
-            value: new BmpString({ value: "Test" })
-        }));
-
-        certSimpl.notBefore.value = new Date(2016, 1, 1);
-        certSimpl.notAfter.value = new Date(2019, 1, 1);
-
-        certSimpl.extensions = []; // Extensions are not a part of certificate by default, it's an optional array
-
-        //region "KeyUsage" extension
-        var bitArray = new ArrayBuffer(1);
-        var bitView = new Uint8Array(bitArray);
-
-        bitView[0] |= 0x02; // Key usage "cRLSign" flag
-        //bitView[0] = bitView[0] | 0x04; // Key usage "keyCertSign" flag
-
-        var keyUsage = new BitString({ valueHex: bitArray });
-
-        certSimpl.extensions.push(new Extension({
-            extnID: "2.5.29.15",
-            critical: false,
-            extnValue: keyUsage.toBER(false),
-            parsedValue: keyUsage // Parsed value for well-known extensions
-        }));
-        //endregion
-        //endregion
-
-        //region Create a new key pair
-        sequence = sequence.then(() => {
-            //region Get default algorithm parameters for key generation
-            var algorithm = getAlgorithmParameters(signAlg, "generatekey");
-            if ("hash" in algorithm.algorithm) algorithm.algorithm.hash.name = hashAlg;
-            //endregion
-
-            return crypto.generateKey(algorithm.algorithm, true, algorithm.usages);
-        });
-        //endregion
-
-        //region Store new key in an interim variables
-        sequence = sequence.then(keyPair => {
-            publicKey = keyPair.publicKey;
-            privateKey = keyPair.privateKey;
-        }, error => Promise.reject(`Error during key generation: ${error}`));
-        //endregion
-
-        //region Exporting public key into "subjectPublicKeyInfo" value of certificate
-        sequence = sequence.then(() => certSimpl.subjectPublicKeyInfo.importKey(publicKey));
-        //endregion
-
-        //region Signing final certificate
-        sequence = sequence.then(() => certSimpl.sign(privateKey, hashAlg), error => Promise.reject(`Error during exporting public key: ${error}`));
-        //endregion
-
-        //region Encode and store certificate
-        sequence = sequence.then(() => {
-            trustedCertificates.push(certSimpl);
-            certificateBuffer = certSimpl.toSchema(true).toBER(false);
-        }, error => Promise.reject(`Error during signing: ${error}`));
-        //endregion
-
-        //region Exporting private key
-        sequence = sequence.then(() => crypto.exportKey("pkcs8", privateKey));
-        //endregion
-
-        //region Store exported key on Web page
-        sequence = sequence.then(result => {
-            privateKeyBuffer = result;
-        }, error => Promise.reject(`Error during exporting of private key: ${error}`));
-        //endregion
-
-        //region Check if user wants us to include signed extensions
-        if (addExt) {
-            //region Create a message digest
-            sequence = sequence.then(() => crypto.digest({ name: hashAlg }, new Uint8Array(dataBuffer)));
-            //endregion
-
-            //region Combine all signed extensions
-            sequence = sequence.then(result => {
-                var signedAttr = [];
-
-                signedAttr.push(new Attribute({
-                    type: "1.2.840.113549.1.9.3",
-                    values: [new ObjectIdentifier({ value: "1.2.840.113549.1.7.1" })]
-                })); // contentType
-
-                signedAttr.push(new Attribute({
-                    type: "1.2.840.113549.1.9.5",
-                    values: [new UTCTime({ valueDate: new Date() })]
-                })); // signingTime
-
-                signedAttr.push(new Attribute({
-                    type: "1.2.840.113549.1.9.4",
-                    values: [new OctetString({ valueHex: result })]
-                })); // messageDigest
-
-                return signedAttr;
-            });
-            //endregion
+        function convertPemToBinary(pem) {
+            var lines = pem.split('\n');
+            var encoded = '';
+            for(var i = 0;i < lines.length;i++){
+                if (lines[i].trim().length > 0 &&
+                    lines[i].indexOf('-BEGIN RSA PRIVATE KEY-') < 0 &&
+                    lines[i].indexOf('-BEGIN RSA PUBLIC KEY-') < 0 &&
+                    lines[i].indexOf('-BEGIN PUBLIC KEY-') < 0 &&
+                    lines[i].indexOf('-BEGIN CERTIFICATE-') < 0 &&
+                    lines[i].indexOf('-BEGIN PRIVATE KEY-') < 0 &&
+                    lines[i].indexOf('-END PRIVATE KEY-') < 0 &&
+                    lines[i].indexOf('-END CERTIFICATE-') < 0 &&
+                    lines[i].indexOf('-END PUBLIC KEY-') < 0 &&
+                    lines[i].indexOf('-END RSA PRIVATE KEY-') < 0 &&
+                    lines[i].indexOf('-END RSA PUBLIC KEY-') < 0) {
+                    encoded += lines[i].trim();
+                }
+            }
+            return base64StringToArrayBuffer(encoded);
         }
-        //endregion
 
-        //region Initialize CMS Signed Data structures and sign it
-        sequence = sequence.then(result => {
+        function base64StringToArrayBuffer(b64str) {
+            let byteStr = atob(b64str);
+
+            let bytes = new Uint8Array(byteStr.length);
+            for (let i = 0; i < byteStr.length; i++) {
+                bytes[i] = byteStr.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        var privateKey = void 0;
+        var certSimpl = void 0;
+        var cmsSignedSimpl = void 0;
+        var sequence = Promise.resolve();
+        sequence = sequence.then(() => {
+            let privateKeyPem = localStorage.getItem("PRIVATE_KEY_PEM");
+            let algoName = localStorage.getItem("algoName");
+            let hashName = localStorage.getItem("hashName");
+            console.log(algoName);
+            console.log(hashName);
+            return window.crypto.subtle.importKey(
+                "pkcs8",
+                convertPemToBinary(privateKeyPem),
+                {
+                    name: algoName,
+                    hash: {name: hashName} // or SHA-512
+                },
+                true,
+                ["sign"]
+            )
+        }).then((res) => {
+            privateKey = res;
+            console.log(privateKey)
+        }).then(() => {
+            let certPem = localStorage.getItem("CERTIFICATE_PEM");
+            certSimpl = window.parsePemCertificate(certPem);
+        }).then(result => {
             cmsSignedSimpl = new SignedData({
                 version: 1,
                 encapContentInfo: new EncapsulatedContentInfo({
@@ -30016,16 +29943,12 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
                 });
 
                 cmsSignedSimpl.encapContentInfo.eContent = contentInfo.eContent;
-
+                console.log(privateKey);
                 return cmsSignedSimpl.sign(privateKey, 0, hashAlg);
             }
 
             return cmsSignedSimpl.sign(privateKey, 0, hashAlg, dataBuffer);
-        });
-        //endregion
-
-        //region Create final result
-        sequence.then(() => {
+        }).then(() => {
             var cmsSignedSchema = cmsSignedSimpl.toSchema(true);
 
             var cmsContentSimp = new ContentInfo({
@@ -30061,39 +29984,99 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
     //*********************************************************************************
     function createCMSSigned() {
         return createCMSSignedInternal().then(() => {
-            var certSimplString = String.fromCharCode.apply(null, new Uint8Array(certificateBuffer));
-
-            var resultString = "-----BEGIN CERTIFICATE-----\r\n";
-            resultString += formatPEM(window.btoa(certSimplString));
-            resultString = `${resultString}\r\n-----END CERTIFICATE-----\r\n`;
-
-            alert("Certificate created successfully!");
-
-            var privateKeyString = String.fromCharCode.apply(null, new Uint8Array(privateKeyBuffer));
-
-            resultString = `${resultString}\r\n-----BEGIN PRIVATE KEY-----\r\n`;
-            resultString += formatPEM(window.btoa(privateKeyString));
-            resultString = `${resultString}\r\n-----END PRIVATE KEY-----\r\n`;
-
-            // noinspection InnerHTMLJS
-            document.getElementById("new_signed_data").innerHTML = resultString;
-
-            alert("Private key exported successfully!");
-
             var signedDataString = String.fromCharCode.apply(null, new Uint8Array(cmsSignedBuffer));
-
-            resultString = `${resultString}\r\n-----BEGIN CMS-----\r\n`;
+            let resultString = "";
+            resultString = `${resultString}-----BEGIN CMS-----\r\n`;
             resultString += formatPEM(window.btoa(signedDataString));
             resultString = `${resultString}\r\n-----END CMS-----\r\n\r\n`;
 
-            // noinspection InnerHTMLJS
             document.getElementById("new_signed_data").innerHTML = resultString;
-
-            parseCMSSigned();
 
             alert("CMS Signed Data created successfully!");
         });
     }
+
+
+    function parsePemCertificate(certPemStr) {
+        function convertPemToBinary(pem) {
+            var lines = pem.split('\n');
+            var encoded = '';
+            for(var i = 0;i < lines.length;i++){
+                if (lines[i].trim().length > 0 &&
+                    lines[i].indexOf('-BEGIN RSA PRIVATE KEY-') < 0 &&
+                    lines[i].indexOf('-BEGIN RSA PUBLIC KEY-') < 0 &&
+                    lines[i].indexOf('-BEGIN PUBLIC KEY-') < 0 &&
+                    lines[i].indexOf('-BEGIN CERTIFICATE-') < 0 &&
+                    lines[i].indexOf('-BEGIN PRIVATE KEY-') < 0 &&
+                    lines[i].indexOf('-END PRIVATE KEY-') < 0 &&
+                    lines[i].indexOf('-END CERTIFICATE-') < 0 &&
+                    lines[i].indexOf('-END PUBLIC KEY-') < 0 &&
+                    lines[i].indexOf('-END RSA PRIVATE KEY-') < 0 &&
+                    lines[i].indexOf('-END RSA PUBLIC KEY-') < 0) {
+                    encoded += lines[i].trim();
+                }
+            }
+            return base64StringToArrayBuffer(encoded);
+        }
+
+        function base64StringToArrayBuffer(b64str) {
+            let byteStr = atob(b64str);
+
+            let bytes = new Uint8Array(byteStr.length);
+            for (let i = 0; i < byteStr.length; i++) {
+                bytes[i] = byteStr.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+        let certBuffer = new ArrayBuffer(0);
+        let pem = certPemStr;
+        certBuffer = convertPemToBinary(pem);
+        let asn1 = fromBER(certBuffer)
+        let cert = new Certificate({ schema: asn1.result });
+        window.ParsedCertificate = cert;
+        return cert;
+    }
+
+    function parsePemPrivateKey(keyPemStr) {
+        function convertPemToBinary(pem) {
+            var lines = pem.split('\n');
+            var encoded = '';
+            for(var i = 0;i < lines.length;i++){
+                if (lines[i].trim().length > 0 &&
+                    lines[i].indexOf('-BEGIN RSA PRIVATE KEY-') < 0 &&
+                    lines[i].indexOf('-BEGIN RSA PUBLIC KEY-') < 0 &&
+                    lines[i].indexOf('-BEGIN PUBLIC KEY-') < 0 &&
+                    lines[i].indexOf('-BEGIN CERTIFICATE-') < 0 &&
+                    lines[i].indexOf('-BEGIN PRIVATE KEY-') < 0 &&
+                    lines[i].indexOf('-END PRIVATE KEY-') < 0 &&
+                    lines[i].indexOf('-END CERTIFICATE-') < 0 &&
+                    lines[i].indexOf('-END PUBLIC KEY-') < 0 &&
+                    lines[i].indexOf('-END RSA PRIVATE KEY-') < 0 &&
+                    lines[i].indexOf('-END RSA PUBLIC KEY-') < 0) {
+                    encoded += lines[i].trim();
+                }
+            }
+            return base64StringToArrayBuffer(encoded);
+        }
+
+        function base64StringToArrayBuffer(b64str) {
+            let byteStr = atob(b64str);
+
+            let bytes = new Uint8Array(byteStr.length);
+            for (let i = 0; i < byteStr.length; i++) {
+                bytes[i] = byteStr.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+        let keyBuffer = new ArrayBuffer(0);
+        let pem = keyPemStr;
+        keyBuffer = convertPemToBinary(pem);
+        let asn1 = fromBER(keyBuffer)
+        let privateKey = new PrivateKeyInfo({ schema: asn1.result });
+        window.ParsedPrivateKey = privateKey;
+        return privateKey;
+    }
+
     //*********************************************************************************
     //endregion
     //*********************************************************************************
@@ -30313,6 +30296,8 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
     window.handleSignAlgOnChange = handleSignAlgOnChange;
     window.handleAddExtOnChange = handleAddExtOnChange;
     window.handleDetachedSignatureOnChange = handleDetachedSignatureOnChange;
+    window.parsePemCertificate = parsePemCertificate;
+    window.parsePemPrivateKey = parsePemPrivateKey;
 
     function context(name, func) {}
 })();

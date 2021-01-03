@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8"/>
+    <title>CMS Signed Data complex example</title>
+    <script type="text/javascript" src="/js/cms.js"></script>
+    <style type="text/css">
+        body {
+            background: #efefef;
+            font: normal 14px/16px Helvetica, Arial, sans-serif;
+        }
+
+        .wrapper {
+            width: 600px;
+            margin: 50px auto;
+            padding: 50px;
+            box-shadow: 0 2px 5px #e9e9e9;
+            background: #ffffff;
+        }
+
+        label {
+            font: bold 16px/20px Helvetica, Arial, sans-serif;
+            margin: 0 0 8px;
+        }
+
+        textarea {
+            width: 100%;
+            border-radius: 5px;
+            -webkit-border-radius: 5px;
+            height: 340px;
+            font: normal 12px/15px monospace;
+            display: block;
+            resize: none;
+            margin: 24px 0px;
+            transition: all 200ms ease;
+
+            font-size: 16px;
+
+            outline: none;
+            border: none;
+
+            border-bottom: 1px solid #b9b7b7;
+        }
+
+        a {
+            display: inline-block;
+            padding: 5px 15px;
+            background: #ffc700;
+            color: #000;
+            font: normal 14px/16px Helvetica, Arial, sans-serif;
+            transition: all 200ms ease;
+        }
+
+        a:hover {
+            background: #ffc700;
+            cursor: pointer;
+
+            box-shadow: 0 5px 10px #dfdfdf;
+        }
+
+        .header-block {
+            font: bold 16px/20px Helvetica, Arial, sans-serif;
+        }
+
+        .border-block h2 {
+            margin: 0 0 16px;
+            font: bold 22px/24px Helvetica, Arial, sans-serif;
+        }
+
+        .border-block p {
+            margin: 0 0 12px;
+        }
+
+        .border-block p .type {
+            font-weight: bold;
+            display: inline-block;
+            width: 176px;
+        }
+
+        .border-block .two-col {
+            overflow: hidden;
+            margin: 0 0 16px;
+        }
+
+        .border-block .two-col .subject {
+            width: 180px;
+            font-weight: bold;
+            margin: 0 0 12px;
+            float: left;
+        }
+
+        .border-block .two-col #cert-attributes {
+            margin: 0;
+            padding: 0;
+            float: left;
+            list-style: none;
+        }
+
+        .border-block .two-col #cert-attributes li p {
+            margin: 0;
+        }
+
+        .border-block .two-col #cert-attributes li p span {
+            width: 40px;
+            display: inline-block;
+            margin: 0 0 5px;
+        }
+
+        .border-block .two-col #cert-exten {
+            overflow: hidden;
+            padding: 0 0 0 17px;
+            margin: 0;
+            list-style-type: square;
+        }
+
+        table {
+            border: solid;
+            border-collapse: collapse;
+            border-color: black;
+        }
+
+        th {
+            text-align: center;
+            background: #ccc;
+            padding: 5px;
+            border: 1px solid black;
+        }
+
+        td {
+            padding: 5px;
+            border: 1px solid black;
+        }
+
+        .border-block__options {
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+
+<body>
+<div class="wrapper">
+    <p class="header-block">Create new CMS Signed Data</p>
+    <div id="output_div" class="border-block">
+        <p>
+            <label for="input_file" style="font-weight: bold"
+            >Select a file to make signature for:</label
+            >
+            <input type="file" id="input_file" title="Input file"/>
+        </p>
+        <div style="display: none;">
+            <p>
+                <label for="add_ext" style="font-weight: bold"
+                >Add signed extensions in SignerInfo:</label
+                >
+                <input
+                        type="checkbox"
+                        id="add_ext"
+                        value="0"
+                        onchange="handleAddExtOnChange()"
+                />
+            </p>
+            <p>
+                <label for="detached_signature" style="font-weight: bold"
+                >Make CMS signature with detached data:</label
+                >
+                <input
+                        type="checkbox"
+                        id="detached_signature"
+                        value="0"
+                        onchange="handleDetachedSignatureOnChange()"
+                />
+            </p>
+        </div>
+        <p>
+            <label for="hash_alg" style="font-weight: bold"
+            >Hashing algorithm:</label
+            >
+            <select id="hash_alg" onchange="handleHashAlgOnChange()">
+                <option value="alg_SHA1">SHA-1</option>
+                <option value="alg_SHA256">SHA-256</option>
+                <option value="alg_SHA384">SHA-384</option>
+                <option value="alg_SHA512">SHA-512</option>
+            </select>
+        </p>
+        <p>
+            <label for="sign_alg" style="font-weight: bold">Signature algorithm:</label>
+            <select id="sign_alg" onchange="handleSignAlgOnChange()">
+                <option value="alg_RSA15">RSASSA-PKCS1-v1_5</option>
+                <option value="alg_ECDSA">ECDSA Temporary not working</option>
+            </select>
+        </p>
+        <label for="new_signed_data" style="font-weight: bold; float: left">:</label>
+        <textarea id="new_signed_data" placeholder="Text..."></textarea>
+    </div>
+    <p style="display: none" class="header-block"></p>
+    <div style="display: none" id="cms-signed-data-block" class="border-block">
+        <p>
+            <label for="parsing_file">Load binary CMS Signed:</label>
+            <input type="file" id="parsing_file" title="Input file"/>
+        </p>
+        <div id="cms-dgst" class="two-col">
+            <p class="subject">Digest algorithms:</p>
+            <ul id="cms-dgst-algos"></ul>
+        </div>
+        <p>
+            <span class="type">Encapsulated cont. type:</span>
+            <span id="cms-encap-type"></span>
+        </p>
+        <div id="cms-certs" class="two-col" style="display: none">
+            <p class="subject">Certificates:</p>
+            <table id="cms-certificates">
+                <tr>
+                    <th>Serial number</th>
+                    <th>Issuer</th>
+                </tr>
+            </table>
+        </div>
+        <div id="cms-crls" class="two-col" style="display: none">
+            <p class="subject">CRLs:</p>
+            <table id="cms-rev-lists">
+                <tr>
+                    <th>Issuer</th>
+                </tr>
+            </table>
+        </div>
+        <p>
+            <span class="type">Number of signers:</span>
+            <span id="cms-signs"></span>
+        </p>
+    </div>
+    <p style="display: none" class="header-block"></p>
+    <div style="display: none" id="add-cms-signed-block" class="border-block">
+        <p>
+            <label for="ca_bundle">Load "CA bundle":</label>
+            <input type="file" id="ca_bundle" title="Input file"/>
+        </p>
+        <a style="margin-bottom: 12px" onclick="verifyCMSSigned();">Verify</a>
+    </div>
+</div>
+
+<script>
+    document
+        .getElementById("input_file")
+        .addEventListener("change", handleFileBrowse, false);
+    document
+        .getElementById("parsing_file")
+        .addEventListener("change", handleParsingFile, false);
+    document
+        .getElementById("ca_bundle")
+        .addEventListener("change", handleCABundle, false);
+</script>
+</body>
+</html>

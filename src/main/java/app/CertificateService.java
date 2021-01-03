@@ -1,13 +1,13 @@
 package app;
 
-import org.bouncycastle.asn1.x509.*;
-import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.asn1.x509.X509Name;
 import org.bouncycastle.x509.X509V3CertificateGenerator;
 import org.springframework.stereotype.Service;
-
-import javax.security.auth.x500.X500Principal;
-import java.math.BigInteger;
-import java.security.*;
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SignatureException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Calendar;
@@ -62,7 +62,7 @@ public class CertificateService
 
     private X509Certificate signCertificate(X509V3CertificateGenerator certGen)
             throws NoSuchAlgorithmException,
-            CertificateEncodingException, NoSuchProviderException,
+            CertificateEncodingException,
             InvalidKeyException, SignatureException {
         return certGen.generate(keys.getPrivate());
     }

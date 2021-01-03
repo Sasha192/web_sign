@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta charset="utf-8"/>
+	<title>X.509 certificate's complex example</title>
+
+	<script
+			type="text/javascript"
+			src="/js/x509CertGenerate.js"
+	></script>
+	<link rel="stylesheet" href="/css/root_css.css"/>
+	<style type="text/css">
+		.wrapper {
+			width: 600px;
+			margin: 50px auto;
+			padding: 50px;
+			box-shadow: 0 2px 5px #e9e9e9;
+		}
+
+		label {
+			font: bold 16px/20px Helvetica, Arial, sans-serif;
+			margin: 0 0 8px;
+		}
+
+		textarea {
+			width: 100%;
+			border-radius: 5px;
+			-webkit-border-radius: 5px;
+			height: 340px;
+			font: normal 12px/15px monospace;
+			display: block;
+			resize: none;
+			margin: 24px 0px;
+			transition: all 200ms ease;
+
+			font-size: 16px;
+
+			outline: none;
+			border: none;
+
+			border-bottom: 1px solid #b9b7b7;
+		}
+
+		a {
+			display: inline-block;
+			padding: 5px 15px;
+			background: #ffc700;
+			color: #000;
+			font: normal 14px/16px Helvetica, Arial, sans-serif;
+			transition: all 200ms ease;
+		}
+
+		a:hover {
+			background: #ffc700;
+			cursor: pointer;
+
+			box-shadow: 0 5px 10px #dfdfdf;
+		}
+
+		.header-block {
+			font: bold 16px/20px Helvetica, Arial, sans-serif;
+		}
+
+		.border-block h2 {
+			margin: 0 0 16px;
+			font: bold 22px/24px Helvetica, Arial, sans-serif;
+		}
+
+		.border-block p {
+			margin: 0 0 12px;
+		}
+
+		.border-block p .type {
+			font-weight: bold;
+			display: inline-block;
+			width: 176px;
+		}
+
+		.border-block .two-col {
+			overflow: hidden;
+			margin: 0 0 16px;
+		}
+
+		.border-block .two-col .subject {
+			width: 180px;
+			font-weight: bold;
+			margin: 0 0 12px;
+			float: left;
+		}
+
+		.border-block .two-col #cert-attributes {
+			margin: 0;
+			padding: 0;
+			float: left;
+			list-style: none;
+		}
+
+		.border-block .two-col #cert-attributes li p {
+			margin: 0;
+		}
+
+		.border-block .two-col #cert-attributes li p span {
+			width: 40px;
+			display: inline-block;
+			margin: 0 0 5px;
+		}
+
+		.border-block .two-col #cert-exten {
+			overflow: hidden;
+			padding: 0 0 0 17px;
+			margin: 0;
+			list-style-type: square;
+		}
+
+		table {
+			border: solid;
+			border-collapse: collapse;
+			border-color: black;
+		}
+
+		th {
+			text-align: center;
+			background: #ccc;
+			padding: 5px;
+			border: 1px solid black;
+		}
+
+		td {
+			padding: 5px;
+			border: 1px solid black;
+		}
+
+		.border-block__options {
+			display: flex;
+			justify-content: space-between;
+		}
+	</style>
+</head>
+
+<body>
+<div class="wrapper">
+	<div id="output_div" class="border-block">
+		<div class="border-block__options">
+			<div>
+				<label for="hash_alg" style="font-weight: bold">Hashing algorithm:</label>
+				<select id="hash_alg" onchange="handleHashAlgOnChange()">
+					<option value="alg_SHA1">SHA-1</option>
+					<option value="alg_SHA256">SHA-256</option>
+					<option value="alg_SHA384">SHA-384</option>
+					<option value="alg_SHA512">SHA-512</option>
+				</select>
+			</div>
+			<div>
+				<label for="sign_alg" style="font-weight: bold"
+				>Signature algorithm:</label
+				>
+				<select id="sign_alg" onchange="handleSignAlgOnChange()">
+					<option value="alg_RSA15">RSASSA-PKCS1-v1_5</option>
+					<option value="alg_ECDSA">ECDSA : temporary not working</option>
+				</select>
+			</div>
+		</div>
+
+		<label for="new_signed_data" style="font-weight: bold; float: left; display: none"></label>
+		<textarea id="new_signed_data" placeholder="Text...">Text...</textarea>
+		<a onclick="createCertificate()">Create</a>
+	</div>
+
+	<p class="header-block" style="display: none">
+		Parse loaded/created X.509 certificate
+	</p>
+	<div id="cert-data-block" class="border-block" style="display: none">
+		<p>
+			<label for="cert-file">Select binary X.509 cert file:</label>
+			<input type="file" id="cert-file" title="X.509 certificate"/>
+		</p>
+		<div id="cert-issuer-div" class="two-col">
+			<p class="subject">Issuer:</p>
+			<table id="cert-issuer-table">
+				<tr>
+					<th>OID</th>
+					<th>Value</th>
+				</tr>
+			</table>
+		</div>
+		<div id="cert-subject-div" class="two-col">
+			<p class="subject">Subject:</p>
+			<table id="cert-subject-table">
+				<tr>
+					<th>OID</th>
+					<th>Value</th>
+				</tr>
+			</table>
+		</div>
+		<p>
+			<span class="type">Serial number:</span>
+			<span id="cert-serial-number"></span>
+		</p>
+		<p>
+			<span class="type">Issuance date:</span>
+			<span id="cert-not-before"></span>
+		</p>
+		<p>
+			<span class="type">Expiration date:</span>
+			<span id="cert-not-after"></span>
+		</p>
+		<p>
+			<span class="type">Public key size (bits):</span>
+			<span id="cert-keysize"></span>
+		</p>
+		<p>
+			<span class="type">Signature algorithm:</span>
+			<span id="cert-sign-algo"></span>
+		</p>
+		<div id="cert-extn-div" class="two-col" style="display: none">
+			<p class="subject">Extensions:</p>
+			<table id="cert-extn-table">
+				<tr>
+					<th>OID</th>
+				</tr>
+			</table>
+		</div>
+	</div>
+
+</div>
+
+<script>
+    document.getElementById("cert-file").addEventListener("change", handleFileBrowse, false);
+</script>
+</body>
+</html>
